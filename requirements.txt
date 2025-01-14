@@ -1,0 +1,7 @@
+streamlit
+phidata
+google-generativeai
+duckduckgo-search
+# transformers
+# RAKE-nltk
+youtube_dl
