@@ -4,4 +4,4 @@ google-generativeai
 duckduckgo-search
 # transformers
 # RAKE-nltk
-youtube_dl
+yt_dlp
