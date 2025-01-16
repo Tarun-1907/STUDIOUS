@@ -381,62 +381,65 @@ def fetch_video_from_url(url):
         st.error(f"Error fetching video: {str(e)}")
         return None
 
-# File uploader for local video file
-video_file = st.file_uploader(
-    "Upload a Video file", type=['mp4', 'mov', 'avi'], help="Upload a video for analysis"
-)
+# Layout with increased left and right margins
+st.markdown("<style> .main {padding-left: 15%; padding-right: 15%;} </style>", unsafe_allow_html=True)
+with st.container():
+    # File uploader for local video file
+    video_file = st.file_uploader(
+        "Upload a Video file", type=['mp4', 'mov', 'avi'], help="Upload a video for analysis"
+    )
 
-# Input for YouTube URL
-youtube_url = st.text_input("Or enter a YouTube video URL", help="Paste the YouTube video URL here.")
+    # Input for YouTube URL
+    youtube_url = st.text_input("Or enter a YouTube video URL", help="Paste the YouTube video URL here.")
 
-# Process video if uploaded or URL is provided
-if video_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
-        temp_video.write(video_file.read())
-        video_path = temp_video.name
+    # Process video if uploaded or URL is provided
+    if video_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
+            temp_video.write(video_file.read())
+            video_path = temp_video.name
 
-    st.video(video_path, format="video/mp4", start_time=0)
-
-elif youtube_url:
-    video_path = fetch_video_from_url(youtube_url)
-    if video_path:
         st.video(video_path, format="video/mp4", start_time=0)
 
-# User query input
-user_query = st.text_area(
-    "What insights are you seeking for?",
-    placeholder="Ask anything",
-    help="Provide specific questions or insights you're looking for."
-)
+    elif youtube_url:
+        video_path = fetch_video_from_url(youtube_url)
+        if video_path:
+            st.video(video_path, format="video/mp4", start_time=0)
 
-# Button to trigger analysis
-if st.button("Analyze", key="analyze"):
-    if not user_query:
-        st.warning("Please enter your question.")
+    # User query input
+    user_query = st.text_area(
+        "What insights are you seeking for?",
+        placeholder="Ask anything",
+        help="Provide specific questions or insights you're looking for."
+    )
+
+    # Button to trigger analysis
+    if st.button("Analyze", key="analyze"):
+        if not user_query:
+            st.warning("Please enter your question.")
+        else:
+            try:
+                with st.spinner("Processing video and gathering insights..."):
+                    # Upload video to the cloud
+                    processed_video = upload_file(video_path)
+                    while processed_video.state.name == "PROCESSING":
+                        time.sleep(1)
+                        processed_video = get_file(processed_video.name)
+
+                    # Get response from multimodal agent
+                    analysis_prompt = f"{user_query}"
+                    response = multimodal_agent.run(analysis_prompt, videos=[processed_video])
+
+                st.subheader("Result")
+                st.markdown(response.content)
+
+            except Exception as error:
+                st.error(f"Error: {error}")
+
+            finally:
+                Path(video_path).unlink(missing_ok=True)
+
     else:
-        try:
-            with st.spinner("Processing video and gathering insights..."):
-                # Upload video to the cloud
-                processed_video = upload_file(video_path)
-                while processed_video.state.name == "PROCESSING":
-                    time.sleep(1)
-                    processed_video = get_file(processed_video.name)
-                
-                # Get response from multimodal agent
-                analysis_prompt = f"{user_query}"
-                response = multimodal_agent.run(analysis_prompt, videos=[processed_video])
-                
-            st.subheader("Result")
-            st.markdown(response.content)
-        
-        except Exception as error:
-            st.error(f"Error: {error}")
-        
-        finally:
-            Path(video_path).unlink(missing_ok=True)
-
-else:
-    st.info("Upload a video or provide a YouTube URL to get insights")
+        st.info("Upload a video or provide a YouTube URL to get insights")
 
 # Custom styling for textarea
 st.markdown(
